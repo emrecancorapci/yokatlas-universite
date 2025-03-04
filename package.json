@@ -2,14 +2,30 @@
   "name": "yokatlas",
   "version": "1.0.0",
   "description": "",
+  "type": "module",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node app.js"
+    "start": "tsc && node build/app.js",
+    "dev": "tsx watch src/app.ts"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "puppeteer": "^2.1.1"
+    "puppeteer": "^24.3.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@eslint/js": "^9.21.0",
+    "eslint": "^9.21.0",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2",
+    "typescript-eslint": "^8.25.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@biomejs/biome",
+      "esbuild",
+      "puppeteer"
+    ]
   }
 }

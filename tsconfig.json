@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "lib": ["ESNext", "DOM"],
+    "module": "nodenext",
+    "target": "ESNext",
+    "outDir": "./build",
+
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "moduleResolution": "nodenext"
+  },
+  "include": ["src", "*.js"],
+  "exclude": ["node_modules", "build"]
+}
