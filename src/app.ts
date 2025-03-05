@@ -5,16 +5,25 @@ import { mkdir, readdir, writeFile } from "node:fs/promises";
 async function main() {
   const scrapper = await YokAtlasScrapper.init();
 
-  const tables = await measureDuration(async () => {
-    return await scrapper.run(new Set(["dil", "ea", "say", "söz"]));
-  });
+  try {
+    const departments = await measureDuration(async () => {
+      return await scrapper.run(new Set(["dil"]));
+    });
 
-  await writeOutput("yok-atlas-veriler.json", JSON.stringify(tables));
-  await writeOutput("yok-atlas-veriler.csv", extractToCSV(tables));
-
-  await scrapper.uninit();
-
-  process.exit(0);
+    await writeOutput(
+      "yok-atlas-veriler.json",
+      JSON.stringify(departments.sort((a, b) => a.departmentName.localeCompare(b.departmentName))),
+    );
+    await writeOutput(
+      "yok-atlas-veriler.csv",
+      extractToCSV(departments.sort((a, b) => a.departmentName.localeCompare(b.departmentName))),
+    );
+  } catch (error) {
+    console.error("Scraping failed:", error);
+  } finally {
+    await scrapper.uninit();
+    process.exit(0);
+  }
 }
 
 async function writeOutput(file: string, string: string) {
@@ -36,9 +45,8 @@ async function measureDuration<T>(callback: () => T) {
 
   const duration = endTime.getTime() - startTime.getTime();
 
-  console.log(`${duration}ms`);
   console.log(
-    `${Math.floor(duration / 60000)}m ${Math.floor((duration % 60000) / 1000)}s ${duration % 1000}ms`,
+    `Duration: ${Math.floor(duration / 60000)}m ${Math.floor((duration % 60000) / 1000)}s ${duration % 1000}ms`,
   );
 
   return result;

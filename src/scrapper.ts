@@ -11,41 +11,40 @@ export default class YokAtlasScrapper {
     return new YokAtlasScrapper(await puppeteer.launch());
   }
 
-  async run(departmentTypes: Set<DepartmentType>) {
-    const departments: Department[] = [];
-
-    for (const departmentType of departmentTypes) {
-      console.log(`Fetching Department "${departmentType}"`);
-
-      const fetchedDepartments = await this.fetchDepartments(
-        `https://yokatlas.yok.gov.tr/tercih-sihirbazi-t4-tablo.php?p=${departmentType}`,
-      );
-
-      if (fetchedDepartments && fetchedDepartments.length > 0) {
-        const newDepartments: Department[] = fetchedDepartments.map((uni) => {
-          return { ...uni, departmentType } as Department;
-        });
-
-        departments.push(...newDepartments);
-      } else {
-        console.log(`"${departmentType}" is empty.`);
-      }
-    }
-
-    return departments;
-  }
-
   async uninit() {
     await this.browser.close();
   }
 
-  private async fetchDepartments(url: string) {
-    const departments: Omit<Department, "departmentType">[] = [];
-    const page = await this.browser.newPage();
+  async run(departmentTypes: Set<DepartmentType>): Promise<Department[]> {
+    const departmentPromises = [...departmentTypes].map(async (departmentType) => {
+      const page = await this.browser.newPage();
 
-    await page.goto(url);
+      try {
+        console.log(`Fetching Department "${departmentType}"`);
+
+        const departments = await this.fetchDepartments(
+          page,
+          `https://yokatlas.yok.gov.tr/tercih-sihirbazi-t4-tablo.php?p=${departmentType}`,
+        );
+
+        return departments.map((d) => ({ ...d, departmentType }) as Department);
+      } catch (error) {
+        console.error(`Error fetching ${departmentType}:`, error);
+        return [];
+      } finally {
+        await page.close();
+      }
+    });
+
+    const departmentResults = await Promise.all(departmentPromises);
+    return departmentResults.flat();
+  }
+
+  private async fetchDepartments(page: puppeteer.Page, url: string) {
+    const departments: Omit<Department, "departmentType">[] = [];
+
+    await page.goto(url, { waitUntil: "domcontentloaded" });
     await page.waitForSelector("#mydata_next");
-    console.log("Page Loaded");
 
     const pageNumber = await page.evaluate(fetchPageNumber);
 
@@ -53,19 +52,19 @@ export default class YokAtlasScrapper {
       console.log(`${index}/${pageNumber}`);
 
       const fetchedDepartments = await page.$$eval('#mydata > tbody > [role="row"]', scrapeRows);
-
       departments.push(...fetchedDepartments);
 
-      try {
-        await page.click("#mydata_next");
-      } catch {
-        console.log("Interrupted. Waiting for the network to be idle...");
-        await page.waitForNetworkIdle();
-        await page.click("#mydata_next");
-      }
+      await this.goToNextPage(page);
     }
 
     return departments;
+  }
+
+  private async goToNextPage(page: puppeteer.Page) {
+    await Promise.all([
+      page.click("#mydata_next"),
+      page.waitForNetworkIdle(), // Ensure no ongoing network requests
+    ]);
   }
 }
 
@@ -75,7 +74,7 @@ function scrapeRows(universities: Element[]) {
     const fontData = university.querySelectorAll("font");
     const tableData = university.querySelectorAll("td");
 
-    const uni = {
+    return {
       universityName: strongData[0]?.innerText.trim() ?? "",
       universityType: tableData[5]?.innerText.trim() ?? "",
       city: tableData[4]?.innerText.trim() ?? "",
@@ -85,8 +84,6 @@ function scrapeRows(universities: Element[]) {
       placement: fontData[11]?.innerText.trim().replace(",", " ") ?? "",
       base_score: fontData[15]?.innerText.trim().replace(",", ".") ?? "",
     };
-
-    return uni;
   });
 }
 
@@ -96,7 +93,7 @@ function fetchPageNumber() {
   );
 
   if (paginationButtons.length > 0) {
-    return paginationButtons[paginationButtons.length - 1].innerHTML.trim();
+    return Number(paginationButtons[paginationButtons.length - 1].textContent?.trim()) || 1;
   }
 
   throw new Error("Page number not found.");
