@@ -1,27 +1,20 @@
 import extractToCSV from "./csv-extractor.js";
-import YokAtlasScrapper from "./scrapper.js";
+import * as YokAtlasScrapper from "./scrapper.js";
 import { mkdir, readdir, writeFile } from "node:fs/promises";
 
 async function main() {
-  const scrapper = await YokAtlasScrapper.init();
-
   try {
-    const departments = await measureDuration(async () => {
-      return await scrapper.run(new Set(["dil"]));
-    });
+    const departments = await measureDuration(
+      async () => await YokAtlasScrapper.fetcDepartmentData(),
+    );
 
-    await writeOutput(
-      "yok-atlas-veriler.json",
-      JSON.stringify(departments.sort((a, b) => a.departmentName.localeCompare(b.departmentName))),
-    );
-    await writeOutput(
-      "yok-atlas-veriler.csv",
-      extractToCSV(departments.sort((a, b) => a.departmentName.localeCompare(b.departmentName))),
-    );
+    await writeOutput("yok-atlas-veriler.json", JSON.stringify(departments));
+    await writeOutput("yok-atlas-veriler.csv", extractToCSV(departments));
+
+    console.log("Data written.");
+    process.exit(0);
   } catch (error) {
     console.error("Scraping failed:", error);
-  } finally {
-    await scrapper.uninit();
     process.exit(0);
   }
 }

@@ -10,12 +10,10 @@
   },
   "author": "",
   "license": "ISC",
-  "dependencies": {
-    "puppeteer": "^24.3.0"
-  },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "@eslint/js": "^9.21.0",
+    "@types/node": "^22.13.9",
     "eslint": "^9.21.0",
     "tsx": "^4.19.3",
     "typescript": "^5.8.2",
@@ -24,8 +22,7 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "@biomejs/biome",
-      "esbuild",
-      "puppeteer"
+      "esbuild"
     ]
   }
 }
